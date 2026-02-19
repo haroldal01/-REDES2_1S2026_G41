@@ -4,7 +4,7 @@
 | Integrante | Enfoque Principal | Carnet |
 |------------|-------------------|------------------|
 | Harold Alejandro Sánchez Hernández | Infraestructura y VTP | 202200100 |
-|  2| STP y Seguridad | 2 |
+|  Engel Emilio Coc Raxjal| STP y Seguridad | 202200314 |
 | 3 | Enrutamiento | 2 |
 
 ## Resumen de Topología 
