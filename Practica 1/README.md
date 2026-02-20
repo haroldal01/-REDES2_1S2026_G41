@@ -309,3 +309,204 @@ Se implementó correctamente:
 La red quedó funcional, segmentada y protegida contra accesos no autorizados
 
 
+---
+
+# PARTE 3 - Enrutamiento e Interconectividad
+### Integrante 3: Madeline Fabiola Prado Reyes (202100039)
+
+## Descripción
+Configuración de protocolos de enrutamiento dinámico (EIGRP, RIP y OSPF), 
+asignación de IPs a hosts y verificación de comunicación entre ambos edificios.
+
+## Direccionamiento IP de Hosts
+
+| Dispositivo | VLAN | IP | Gateway |
+|---|---|---|---|
+| PC0 | Básicos 25 | 192.178.25.2 | 192.178.25.1 |
+| PC1 | Bachillerato 35 | 192.178.35.2 | 192.178.35.1 |
+| Laptop0 | Bachillerato 35 | 192.178.35.3 | 192.178.35.1 |
+| PC2 | Primaria 15 | 192.178.15.2 | 192.178.15.1 |
+| PC3 | Primaria 15 | 192.178.15.3 | 192.178.15.1 |
+| PC4 | Bachillerato 85 | 192.178.85.2 | 192.178.85.1 |
+| PC5 | Básicos 75 | 192.178.75.2 | 192.178.75.1 |
+| Laptop1 | Básicos 75 | 192.178.75.3 | 192.178.75.1 |
+| PC6 | Primaria 65 | 192.178.65.2 | 192.178.65.1 |
+| PC7 | Primaria 65 | 192.178.65.3 | 192.178.65.1 |
+
+## Redes de Enrutamiento Dinámico
+
+| Protocolo | Red | Cálculo |
+|---|---|---|
+| EIGRP | 10.10.8.0/24 | X = 3 + 5 = 8 |
+| RIP | 10.10.7.0/24 | X = 2 + 5 = 7 |
+| OSPF | 10.10.6.0/24 | X = 1 + 5 = 6 |
+
+## Configuración Router0 - EIGRP
+```
+enable
+configure terminal
+hostname Router0
+interface GigabitEthernet0/1
+no shutdown
+exit
+interface GigabitEthernet0/1.15
+encapsulation dot1Q 15
+ip address 192.178.15.1 255.255.255.0
+no shutdown
+exit
+interface GigabitEthernet0/1.25
+encapsulation dot1Q 25
+ip address 192.178.25.1 255.255.255.0
+no shutdown
+exit
+interface GigabitEthernet0/1.35
+encapsulation dot1Q 35
+ip address 192.178.35.1 255.255.255.0
+no shutdown
+exit
+interface GigabitEthernet0/0
+ip address 10.10.8.1 255.255.255.0
+no shutdown
+exit
+router eigrp 1
+network 192.178.15.0 0.0.0.255
+network 192.178.25.0 0.0.0.255
+network 192.178.35.0 0.0.0.255
+network 10.10.8.0 0.0.0.255
+no auto-summary
+exit
+ip route 192.178.65.0 255.255.255.0 10.10.8.2
+ip route 192.178.75.0 255.255.255.0 10.10.8.2
+ip route 192.178.85.0 255.255.255.0 10.10.8.2
+ip route 10.10.7.0 255.255.255.0 10.10.8.2
+ip route 10.10.6.0 255.255.255.0 10.10.8.2
+end
+write memory
+```
+
+## Configuración Router1 - RIP
+```
+enable
+configure terminal
+hostname Router1
+interface GigabitEthernet0/0
+ip address 10.10.8.2 255.255.255.0
+no shutdown
+exit
+interface GigabitEthernet0/1
+ip address 10.10.7.1 255.255.255.0
+no shutdown
+exit
+router rip
+version 2
+network 10.10.8.0
+network 10.10.7.0
+no auto-summary
+exit
+ip route 192.178.15.0 255.255.255.0 10.10.8.1
+ip route 192.178.25.0 255.255.255.0 10.10.8.1
+ip route 192.178.35.0 255.255.255.0 10.10.8.1
+ip route 192.178.65.0 255.255.255.0 10.10.7.2
+ip route 192.178.75.0 255.255.255.0 10.10.7.2
+ip route 192.178.85.0 255.255.255.0 10.10.7.2
+end
+write memory
+```
+
+## Configuración Router2 - RIP
+```
+enable
+configure terminal
+hostname Router2
+interface GigabitEthernet0/0
+ip address 10.10.7.2 255.255.255.0
+no shutdown
+exit
+interface GigabitEthernet0/1
+ip address 10.10.6.1 255.255.255.0
+no shutdown
+exit
+router rip
+version 2
+network 10.10.7.0
+network 10.10.6.0
+no auto-summary
+exit
+ip route 192.178.15.0 255.255.255.0 10.10.7.1
+ip route 192.178.25.0 255.255.255.0 10.10.7.1
+ip route 192.178.35.0 255.255.255.0 10.10.7.1
+ip route 192.178.65.0 255.255.255.0 10.10.6.2
+ip route 192.178.75.0 255.255.255.0 10.10.6.2
+ip route 192.178.85.0 255.255.255.0 10.10.6.2
+end
+write memory
+```
+
+## Configuración Router3 - OSPF
+```
+enable
+configure terminal
+hostname Router3
+interface GigabitEthernet0/0
+ip address 10.10.6.2 255.255.255.0
+no shutdown
+exit
+interface GigabitEthernet0/1
+no shutdown
+exit
+interface GigabitEthernet0/1.65
+encapsulation dot1Q 65
+ip address 192.178.65.1 255.255.255.0
+no shutdown
+exit
+interface GigabitEthernet0/1.75
+encapsulation dot1Q 75
+ip address 192.178.75.1 255.255.255.0
+no shutdown
+exit
+interface GigabitEthernet0/1.85
+encapsulation dot1Q 85
+ip address 192.178.85.1 255.255.255.0
+no shutdown
+exit
+router ospf 1
+network 192.178.65.0 0.0.0.255 area 0
+network 192.178.75.0 0.0.0.255 area 0
+network 192.178.85.0 0.0.0.255 area 0
+network 10.10.6.0 0.0.0.255 area 0
+exit
+ip route 192.178.15.0 255.255.255.0 10.10.6.1
+ip route 192.178.25.0 255.255.255.0 10.10.6.1
+ip route 192.178.35.0 255.255.255.0 10.10.6.1
+ip route 10.10.7.0 255.255.255.0 10.10.6.1
+ip route 10.10.8.0 255.255.255.0 10.10.6.1
+end
+write memory
+```
+
+## Pruebas de Comunicación
+
+Todas realizadas desde PC0 (192.178.25.2).
+
+| Prueba | Descripción | Resultado |
+|---|---|---|
+| 4.1 | Básicos mismo lado - ping 192.178.25.1 |  Exitoso |
+| 4.2 | Básicos ambos lados - ping 192.178.75.2 |  Exitoso |
+| 4.3 | Inter-VLAN Básicos-Primaria - ping 192.178.15.2 |  Exitoso |
+| 4.4 | Bachillerato mismo lado - ping 192.178.35.2 |  Exitoso |
+| 4.5 | Bachillerato ambos lados - ping 192.178.85.2 |  Exitoso |
+| 4.6 | Inter-VLAN Básicos-Bachillerato - ping 192.178.35.2 |  Exitoso |
+| 4.7 | Primaria mismo lado - ping 192.178.15.3 |  Exitoso |
+| 4.8 | Primaria ambos lados - ping 192.178.65.2 |  Exitoso |
+| 4.9 | Inter-VLAN Básicos-Primaria derecho - ping 192.178.75.3 |  Exitoso |
+
+## Justificación Protocolo STP Elegido: Rapid PVST
+
+- **PVST** (edificio izquierdo): convergencia ~30-50 segundos
+- **Rapid PVST** (edificio derecho): convergencia ~1-6 segundos
+
+Se elige **Rapid PVST** porque converge hasta 10 veces más rápido, usa negociación 
+proposal/agreement en lugar de temporizadores fijos, y minimiza el tiempo de 
+inactividad en la red del Colegio Monte Alto.
+
+
