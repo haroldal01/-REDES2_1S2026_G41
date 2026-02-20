@@ -5,7 +5,7 @@
 |------------|-------------------|------------------|
 | Harold Alejandro Sánchez Hernández | Infraestructura y VTP | 202200100 |
 |  Engel Emilio Coc Raxjal| STP y Seguridad | 202200314 |
-| 3 | Enrutamiento | 2 |
+| Madeline Fabiola Prado Reyes | Enrutamiento | 202100039 |
 
 ## Resumen de Topología 
 Edificio izquierdo: Switches 2960-24TT en pirámide conectados al router izquierdo. Hosts en VLANs 15, 25, 35. Enlaces trunk entre switches y router.  
