@@ -115,3 +115,197 @@ write memory
 **Justificación**: PVST elegido por simplicidad y compatibilidad; convergencia ~50 seg, comparativa con Rapid PVST por Integrante 2.  
 **Verificación**: `show spanning-tree` (modo PVST).
 
+#  Tabla de Tiempos STP
+
+**Rapid Spanning Tree Protocol (RSTP)** en modo **Rapid-PVST**
+
+RSTP es una mejora de:
+
+Spanning Tree Protocol
+
+
+
+##  Comparación de tiempos
+
+| Parámetro              | STP Tradicional (802.1D)                  | RSTP (802.1W / Rapid-PVST)       |
+| ---------------------- | ----------------------------------------- | -------------------------------- |
+| Hello Time             | 2 segundos                                | 2 segundos                       |
+| Max Age                | 20 segundos                               | 6 segundos aprox                 |
+| Forward Delay          | 15 segundos                               | No usa como tal                  |
+| Tiempo de convergencia | 30–50 segundos                            | 1–6 segundos                     |
+| Estados de puerto      | Blocking, Listening, Learning, Forwarding | Discarding, Learning, Forwarding |
+
+
+
+ Convergencia aproximada: 1 a 6 segundos
+ Mucho más rápido que STP tradicional
+
+
+
+## Configuración de Conectividad y Seguridad
+
+
+
+## 1 Configuración de VTP
+
+Se configuró el protocolo:
+
+VLAN Trunking Protocol
+
+Para permitir la propagación automática de VLANs
+
+### En los switches cliente (lado derecho):
+
+```
+conf t
+vtp domain G41
+vtp mode client
+```
+
+Verificación:
+
+```
+show vtp status
+show vlan brief
+```
+
+Resultado:
+Las VLAN 65, 75 y 85 fueron propagadas correctamente desde el switch servidor.
+
+
+
+## 2️ Creación y Administración de VLANs
+
+Se trabajó con las siguientes VLANs:
+
+| VLAN | Nombre       |
+| ---- | ------------ |
+| 65   | Primaria     |
+| 75   | Basicos      |
+| 85   | Bachillerato |
+
+Asignación a puertos:
+
+```
+interface fa0/x
+switchport mode access
+switchport access vlan XX
+```
+
+Verificación:
+
+```
+show vlan brief
+```
+
+
+
+## 3️ Configuración de Enlaces Troncales
+
+Para permitir el transporte de múltiples VLANs entre switches:
+
+```
+interface fa0/x
+switchport mode trunk
+```
+
+Verificación:
+
+```
+show interfaces trunk
+```
+
+
+
+## 4️ Configuración de Rapid-PVST
+
+Se habilitó el protocolo:
+
+Rapid Spanning Tree Protocol
+
+Comando:
+
+```
+spanning-tree mode rapid-pvst
+```
+
+Verificación:
+
+```
+show spanning-tree summary
+```
+
+Resultado:
+Switch operando en modo rapid-pvst
+
+
+
+## 5️ Configuración de Port Security (Solo VLAN 75 Y LA VLAN 25)
+
+Se aplicó seguridad  laS VLAN 75 Y VLAN 25 (Básicos)
+
+Configuración:
+
+```
+interface fa0/x
+switchport mode access
+switchport access vlan 75
+switchport port-security
+switchport port-security maximum 1
+switchport port-security violation shutdown
+switchport port-security mac-address sticky
+```
+
+
+
+###  Parámetros implementados
+
+* Máximo 1 dirección MAC por puerto
+* Aprendizaje automático (Sticky)
+* Violación: Apagado automático del puerto
+
+
+
+###  Prueba de funcionamiento
+
+1. Se conectó PC original → puerto aprendió MAC
+2. Se realizó ping exitoso
+3. Se conectó PC diferente
+4. Se detectó violación
+5. Se bloqueó comunicación
+
+Verificación:
+
+```
+show port-security
+show port-security address
+```
+
+Resultado:
+Registro de MAC y funcionamiento correcto de seguridad
+
+
+## 6️ Prueba de Convergencia
+
+Se realizó prueba desconectando un enlace trunk
+
+Resultado:
+
+* Pérdida temporal de conectividad
+* Recuperación en aproximadamente 1–6 segundos
+* Confirmación de funcionamiento de Rapid-PVST
+
+
+
+#  Conclusion para esta parte 
+
+Se implementó correctamente:
+
+* Segmentación por VLAN
+* Propagación automática con VTP
+* Prevención de loops con Rapid-PVST
+* Seguridad de acceso mediante Port Security
+
+La red quedó funcional, segmentada y protegida contra accesos no autorizados
+
+
