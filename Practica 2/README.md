@@ -9,7 +9,7 @@
 | Nombre | Carnet | Rol |
 |--------|--------|-----|
 | Madeline Fabiola Prado Reyes  | 202100039 | 1 |
-| Harold Alejandro Sánchez Hernández | 202200314 | 2 |
+| Harold Alejandro Sánchez Hernández | 202200100 | 2 |
 | Engel Emilio Coc Raxjal | 202200314 | 3 |
 
 ---
