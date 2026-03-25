@@ -369,7 +369,7 @@ write memory
 
 ## 6. Configuración Persona 3 — Servidor Web, DNS y HSRP Biblioteca
 
->  **Pendiente de completar por Persona 3**
+>  ** Persona 3**
 
 ### 6.1 HSRP Biblioteca Central (Router2 y Router3)
 
