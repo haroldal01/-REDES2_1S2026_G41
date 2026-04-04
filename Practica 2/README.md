@@ -340,35 +340,488 @@ write memory
 
 ## 5. Configuración Persona 2 — Inalámbrico, DHCP y LACP
 
-> ** Persona 2**
+> ** Persona 2 **
 
-### 5.1 LACP MLS4 ↔ MLS3 (Piso 3) — Po2
+---
+##  Alcance de lo realizado
 
+Se trabajó la parte correspondiente a **LACP, DHCP e inalámbrico**. Para el grupo 41, se usa **X = 5**, por lo que el direccionamiento aplicado quedó sobre las redes `192.198.15.0/24`, `192.198.25.0/24`, `192.198.35.0/24`, `192.198.100.0/24` y `10.2.5.0/24`. El protocolo de capa 3 utilizado es **EIGRP**, porque el grupo es impar. El enunciado también exige LACP entre edificios, DHCP dinámico para dispositivos finales, y configuración WiFi con SSID, broadcast y WPA2 según piso.  
 
-### 5.2 LACP MLS4 ↔ MLS0 (Piso 2) — Po3
+## 2. Subnetting usado y que debe respetarse
 
+En el README ya quedó documentado este esquema:
 
-### 5.3 Configuración inalámbrica
+* **Piso 1**
 
-| Piso | SSID | Broadcast | Seguridad | Contraseña RED | Contraseña Router |
-|------|------|-----------|-----------|----------------|-------------------|
-| 2 | PISO2_G5_R1, PISO2_G5_R2 | No | WPA2 Personal | G5_PISO2 | Grupo5_P2 |
-| 3 | PISO3_G5_R1, PISO3_G5_R3 | Sí | WPA2 Personal | G5_PISO3 | Grupo5_P3 |
+  * ESTUDIANTES: `192.198.15.0/26`
+  * ADMIN: `192.198.15.64/28`
+* **Piso 2**
 
+  * WLAN1: `192.198.25.0/25`
+  * WLAN2: `192.198.25.128/25`
+* **Piso 3**
 
+  * WLAN1: `192.198.35.0/25`
+  * WLAN2: `192.198.35.128/25`
+* **Biblioteca central**
 
-### 5.4 Configuración DHCP — ServerDHCP
+  * WEB_SERVERS: `192.198.100.0/25`
+  * DHCP_SERVERS: `192.198.100.128/25`
+* **Red de enrutamiento**
 
+  * `10.2.5.0/24` subdividida en enlaces /30.  
 
+## 3. LACP implementado
 
-### 5.5 Configuración DHCP — Routers inalámbricos
+Se dejaron operativos los enlaces agregados exigidos por la práctica, usando **4 interfaces por bundle**:
 
+* **Po1:** `MLS4 ↔ MLS2`
+* **Po2:** `MLS4 ↔ MLS3`
+* **Po3:** `MLS4 ↔ MLS0`  
 
+### 3.1 Po2 — MLS4 ↔ MLS3
+
+Red usada: `10.2.5.4/30`
+
+* MLS4: `10.2.5.5`
+* MLS3: `10.2.5.6`
+
+Puertos:
+
+* MLS4: `Fa0/6`, `Fa0/7`, `Fa0/8`, `Fa0/23`
+* MLS3: `Fa0/6`, `Fa0/7`, `Fa0/8`, `Fa0/23`
+
+### 3.2 Po3 — MLS4 ↔ MLS0
+
+Red usada: `10.2.5.8/30`
+
+* MLS4: `10.2.5.9`
+* MLS0: `10.2.5.10`
+
+Puertos:
+
+* MLS4: `Fa0/9`, `Fa0/10`, `Fa0/11`, `Fa0/22`
+* MLS0: `Fa0/9`, `Fa0/10`, `Fa0/11`, `Fa0/22`
+
+### 3.3 Comandos base usados en MLS3 y MLS0
+
+```bash
+enable
+configure terminal
+
+ip routing
+
+interface range fa0/x-y, fa0/z
+ no switchport
+ channel-group <n> mode active
+ no shutdown
+exit
+
+interface port-channel <n>
+ no switchport
+ ip address <IP> <MASCARA>
+ no shutdown
+exit
+
+router eigrp 100
+ network <RED> <WILDCARD>
+ no auto-summary
+exit
+
+end
+write memory
+```
+
+### 3.4 Verificación usada
+
+```bash
+show etherchannel summary
+show ip interface brief
+show ip eigrp neighbors
+show ip route
+```
 
 ---
 
-## 6. Configuración Persona 3 — Servidor Web, DNS y HSRP Biblioteca
+## 4. DHCP central para red cableada
 
+El enunciado indica que los servicios DHCP y DNS para la red cableada permanecen en la biblioteca central, y que todos los dispositivos finales deben recibir IP dinámicamente. También exige que el servidor DHCP entregue direcciones correctas para cada VLAN.  
+
+### 4.1 ServerDHCP
+
+Se dejó configurado con IP fija en la red de **DHCP_SERVERS**:
+
+* **IP:** `192.198.100.130`
+* **Máscara:** `255.255.255.128`
+* **Gateway:** `192.198.100.129`
+
+### 4.2 Relay DHCP en piso 1
+
+Se agregaron `ip helper-address 192.198.100.130` en:
+
+* `Router1 G0/1.15`
+* `Router1 G0/1.25`
+* `Router0 G0/1.15`
+* `Router0 G0/1.25`
+
+Esto permite que las solicitudes DHCP de **ADMIN** y **ESTUDIANTES** lleguen al servidor central.
+
+### 4.3 Pools creados para piso 1
+
+**ESTUDIANTES**
+
+* Red: `192.198.15.0/26`
+* Gateway: `192.198.15.62`
+* DNS: `192.198.100.10`
+* Inicio: `192.198.15.4`
+* Máscara: `255.255.255.192`
+
+**ADMIN**
+
+* Red: `192.198.15.64/28`
+* Gateway: `192.198.15.78`
+* DNS: `192.198.100.10`
+* Inicio: `192.198.15.68`
+* Máscara: `255.255.255.240`
+
+Las IP virtuales de HSRP de piso 1 ya estaban definidas en el README como:
+
+* ADMIN: `192.198.15.78`
+* ESTUDIANTES: `192.198.15.62` 
+
+### 4.4 Validación realizada
+
+Se probó un host nuevo en cada VLAN cableada:
+
+* ESTUDIANTES recibió IP del rango correcto
+* ADMIN recibió IP del rango correcto
+* ambos tomaron DHCP desde `192.198.100.130`
+
+---
+
+## 5. Biblioteca central y HSRP necesarios para que el DHCP funcionara
+
+Aunque originalmente esto estaba en la sección de Persona 3, fue necesario dejarlo operativo para que el datacenter y el DHCP funcionaran.
+
+El PDF exige **HSRP en piso 1 y biblioteca**. 
+
+### 5.1 Switch3
+
+Se dejó así:
+
+* `Fa0/1` → access VLAN 35 (**WEB_SERVERS**)
+* `Fa0/2` → access VLAN 45 (**DHCP_SERVERS**)
+* `Fa0/3` → trunk hacia Router2, VLANs permitidas `35,45`
+* `Fa0/4` → trunk hacia Router3, VLANs permitidas `35,45`
+
+### 5.2 Enlaces MLS2 ↔ Router2 / Router3
+
+Según el README:
+
+* `MLS2 ↔ Router2` = `10.2.5.20/30`
+
+  * MLS2: `10.2.5.21`
+  * Router2: `10.2.5.22`
+* `MLS2 ↔ Router3` = `10.2.5.24/30`
+
+  * MLS2: `10.2.5.25`
+  * Router3: `10.2.5.26` 
+
+### 5.3 HSRP en biblioteca
+
+Se dejó así:
+
+**VLAN 35 — WEB_SERVERS**
+
+* VIP: `192.198.100.1`
+* Router2: `192.198.100.2`
+* Router3: `192.198.100.3`
+
+**VLAN 45 — DHCP_SERVERS**
+
+* VIP: `192.198.100.129`
+* Router2: `192.198.100.131`
+* Router3: `192.198.100.132`
+
+Resultado:
+
+* Router2 quedó **Active**
+* Router3 quedó **Standby**
+
+Esto permitió que el `ServerDHCP` alcanzara su gateway y que el DHCP funcionara correctamente.
+
+---
+
+## 6. Configuración inalámbrica — Piso 2
+
+El PDF define para piso 2:
+
+* SSID: `PISO2_GX_R1`, `PISO2_GX_R2`
+* Broadcast: **No**
+* Seguridad: **WPA2 Personal**
+* Contraseña red: `GX_PISO2`
+* Contraseña router: `GrupoX_P2` 
+
+Para **Grupo 41 (X = 5)** se dejó así:
+
+* `PISO2_G5_R1`
+* `PISO2_G5_R2`
+* clave WiFi: `G5_PISO2`
+* clave router prevista: `Grupo5_P2` 
+
+### 6.1 Observación técnica importante
+
+Los equipos usados fueron **WRT300N**, y en Packet Tracer ese modelo **no tiene CLI**, solo pestañas **Config/GUI**. Por eso la parte inalámbrica se dejó funcional usando la interfaz del equipo. A nivel técnico, quedaron operando como **AP**, no como routers con NAT, para respetar el subnetting del README.
+
+### 6.2 Piso 2 — AP 1
+
+Conectado a:
+
+* `MLS0 Fa0/1 ↔ Ethernet 1` del WRT
+
+Configuración:
+
+* IP LAN: `192.198.25.2`
+* Máscara: `255.255.255.128`
+* DHCP: **Disabled**
+* SSID: `PISO2_G5_R1`
+* Broadcast: **Disabled**
+* Seguridad: `WPA2 Personal`
+* Clave: `G5_PISO2`
+
+Gateway de la red:
+
+* `MLS0 Fa0/1 = 192.198.25.1`
+
+### 6.3 Piso 2 — AP 2
+
+Conectado a:
+
+* `MLS0 Fa0/2 ↔ Ethernet 1` del WRT
+
+Configuración:
+
+* IP LAN: `192.198.25.130`
+* Máscara: `255.255.255.128`
+* DHCP: **Disabled**
+* SSID: `PISO2_G5_R2`
+* Broadcast: **Disabled**
+* Seguridad: `WPA2 Personal`
+* Clave: `G5_PISO2`
+
+Gateway de la red:
+
+* `MLS0 Fa0/2 = 192.198.25.129`
+
+### 6.4 Relay DHCP en MLS0
+
+Se agregaron:
+
+* `ip helper-address 192.198.100.130` en `Fa0/1`
+* `ip helper-address 192.198.100.130` en `Fa0/2`
+
+### 6.5 Pools DHCP creados para piso 2
+
+**PISO2_WLAN1**
+
+* Gateway: `192.198.25.1`
+* DNS: `192.198.100.10`
+* Inicio: `192.198.25.3`
+* Máscara: `255.255.255.128`
+
+**PISO2_WLAN2**
+
+* Gateway: `192.198.25.129`
+* DNS: `192.198.100.10`
+* Inicio: `192.198.25.131`
+* Máscara: `255.255.255.128`
+
+### 6.6 Validación realizada
+
+Se probó un cliente nuevo en cada SSID:
+
+* `PISO2_G5_R1` → obtuvo IP `192.198.25.3`, gateway `192.198.25.1`
+* `PISO2_G5_R2` → obtuvo IP `192.198.25.132`, gateway `192.198.25.129`
+
+Ambos llegaron a:
+
+* su gateway local
+* `10.2.5.9`
+* red de piso 1
+* datacenter
+
+---
+
+## 7. Configuración inalámbrica — Piso 3
+
+El PDF define para piso 3:
+
+* SSID: `PISO3_GX_R1`, `PISO3_GX_R3`
+* Broadcast: **Sí**
+* Seguridad: **WPA2 Personal**
+* Contraseña red: `GX_PISO3`
+* Contraseña router: `GrupoX_P3` 
+
+Para **Grupo 41 (X = 5)** se dejó así:
+
+* `PISO3_G5_R1`
+* `PISO3_G5_R3`
+* clave WiFi: `G5_PISO3`
+* clave router prevista: `Grupo5_P3` 
+
+### 7.1 Piso 3 — AP 1
+
+Conectado a:
+
+* `MLS3 Fa0/1 ↔ puerto LAN del WRT`
+
+Configuración:
+
+* IP LAN: `192.198.35.2`
+* Máscara: `255.255.255.128`
+* DHCP: **Disabled**
+* SSID: `PISO3_G5_R1`
+* Broadcast: **Enabled**
+* Seguridad: `WPA2 Personal`
+* Clave: `G5_PISO3`
+
+Gateway:
+
+* `MLS3 Fa0/1 = 192.198.35.1`
+
+### 7.2 Piso 3 — AP 2
+
+Conectado a:
+
+* `MLS3 Fa0/2 ↔ puerto LAN del WRT`
+
+Configuración:
+
+* IP LAN: `192.198.35.130`
+* Máscara: `255.255.255.128`
+* DHCP: **Disabled**
+* SSID: `PISO3_G5_R3`
+* Broadcast: **Enabled**
+* Seguridad: `WPA2 Personal`
+* Clave: `G5_PISO3`
+
+Gateway:
+
+* `MLS3 Fa0/2 = 192.198.35.129`
+
+### 7.3 Relay DHCP en MLS3
+
+Se agregaron:
+
+* `ip helper-address 192.198.100.130` en `Fa0/1`
+* `ip helper-address 192.198.100.130` en `Fa0/2`
+
+### 7.4 Pools DHCP creados para piso 3
+
+**PISO3_WLAN1**
+
+* Gateway: `192.198.35.1`
+* DNS: `192.198.100.10`
+* Inicio: `192.198.35.3`
+* Máscara: `255.255.255.128`
+
+**PISO3_WLAN2**
+
+* Gateway: `192.198.35.129`
+* DNS: `192.198.100.10`
+* Inicio: `192.198.35.131`
+* Máscara: `255.255.255.128`
+
+### 7.5 Validación realizada
+
+Se probó un cliente nuevo en cada SSID:
+
+* `PISO3_G5_R1` → obtuvo IP `192.198.35.3`, gateway `192.198.35.1`
+* `PISO3_G5_R3` → obtuvo IP `192.198.35.131`, gateway `192.198.35.129`
+
+Ambos llegaron a:
+
+* su gateway local
+* `10.2.5.5`
+* datacenter
+* piso 1
+
+---
+
+## 8. Pools DHCP que deben quedar en el servidor
+
+Al final, `ServerDHCP` debe tener estos pools:
+
+* `ESTUDIANTES`
+* `ADMIN`
+* `PISO2_WLAN1`
+* `PISO2_WLAN2`
+* `PISO3_WLAN1`
+* `PISO3_WLAN2`
+
+Esto también es consistente con la rúbrica, que evalúa por separado:
+
+* DHCP cableado desde servidor
+* DHCP correcto en routers/redes inalámbricas piso 2
+* DHCP correcto en routers/redes inalámbricas piso 3 
+
+---
+
+## 9. Comandos de verificación usados
+
+```bash
+show etherchannel summary
+show ip interface brief
+show ip eigrp neighbors
+show ip route
+show standby brief
+show interfaces trunk
+show running-config interface <interfaz>
+ping <ip>
+ipconfig /all
+write memory
+```
+
+Los mismos tipos de comandos también están contemplados en el README como comandos de verificación/documentación. 
+
+---
+
+## 10. Lo que la siguiente persona debe respetar
+
+La siguiente persona no debería cambiar estos puntos:
+
+1. **No mover el direccionamiento ya definido**
+
+   * Piso 2: `192.198.25.0/25` y `192.198.25.128/25`
+   * Piso 3: `192.198.35.0/25` y `192.198.35.128/25`
+   * DHCP server: `192.198.100.130`
+
+2. **No cambiar los gateways ya usados**
+
+   * `192.198.25.1`
+   * `192.198.25.129`
+   * `192.198.35.1`
+   * `192.198.35.129`
+   * HSRP biblioteca: `192.198.100.1` y `192.198.100.129`
+
+3. **No volver a conectar los WRT por WAN/Internet**
+   Deben quedarse conectados por **LAN**, funcionando como AP.
+
+4. **Mantener los SSID y claves exactamente así**
+
+   * `PISO2_G5_R1`
+   * `PISO2_G5_R2`
+   * `PISO3_G5_R1`
+   * `PISO3_G5_R3`
+   * `G5_PISO2`
+   * `G5_PISO3`
+
+5. **DNS esperado por los clientes**
+
+   * `192.198.100.10`
+     Esa IP quedó reservada para que la siguiente persona configure ahí el **ServerWeb/DNS**.
+
+---
 >  ** Persona 3**
 
 ### 6.1 HSRP Biblioteca Central (Router2 y Router3)
@@ -418,3 +871,5 @@ write memory
 | Ping Piso 3 ↔ Piso 1 |  Pendiente Persona 2 |
 | DNS www.practica2_Grupo5com |  Pendiente Persona 3 |
 | Página web accesible | Pendiente Persona 3 |
+
+
