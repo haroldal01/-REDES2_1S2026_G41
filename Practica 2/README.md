@@ -501,9 +501,7 @@ Se probó un host nuevo en cada VLAN cableada:
 
 ## 5. Biblioteca central y HSRP necesarios para que el DHCP funcionara
 
-Aunque originalmente esto estaba en la sección de Persona 3, fue necesario dejarlo operativo para que el datacenter y el DHCP funcionaran.
-
-El PDF exige **HSRP en piso 1 y biblioteca**. 
+*. 
 
 ### 5.1 Switch3
 
@@ -617,8 +615,8 @@ Gateway de la red:
 
 Se agregaron:
 
-* `ip helper-address 192.198.100.130` en `Fa0/1`
-* `ip helper-address 192.198.100.130` en `Fa0/2`
+* `ip helper-address 192.198.100.10` en `Fa0/1`
+* `ip helper-address 192.198.100.10` en `Fa0/2`
 
 ### 6.5 Pools DHCP creados para piso 2
 
@@ -782,64 +780,158 @@ ipconfig /all
 write memory
 ```
 
-Los mismos tipos de comandos también están contemplados en el README como comandos de verificación/documentación. 
 
----
 
-## 10. Lo que la siguiente persona debe respetar
 
-La siguiente persona no debería cambiar estos puntos:
 
-1. **No mover el direccionamiento ya definido**
-
-   * Piso 2: `192.198.25.0/25` y `192.198.25.128/25`
-   * Piso 3: `192.198.35.0/25` y `192.198.35.128/25`
-   * DHCP server: `192.198.100.130`
-
-2. **No cambiar los gateways ya usados**
-
-   * `192.198.25.1`
-   * `192.198.25.129`
-   * `192.198.35.1`
-   * `192.198.35.129`
-   * HSRP biblioteca: `192.198.100.1` y `192.198.100.129`
-
-3. **No volver a conectar los WRT por WAN/Internet**
-   Deben quedarse conectados por **LAN**, funcionando como AP.
-
-4. **Mantener los SSID y claves exactamente así**
-
-   * `PISO2_G5_R1`
-   * `PISO2_G5_R2`
-   * `PISO3_G5_R1`
-   * `PISO3_G5_R3`
-   * `G5_PISO2`
-   * `G5_PISO3`
-
-5. **DNS esperado por los clientes**
-
-   * `192.198.100.10`
-     Esa IP quedó reservada para que la siguiente persona configure ahí el **ServerWeb/DNS**.
-
----
->  ** Persona 3**
 
 ### 6.1 HSRP Biblioteca Central (Router2 y Router3)
+**Router2 (Activo — prioridad 110):**
+```
+interface GigabitEthernet0/0.35
+ standby 1 ip 192.198.100.1
+ standby 1 priority 110
+ standby 1 preempt
+
+interface GigabitEthernet0/0.45
+ standby 2 ip 192.198.100.129
+ standby 2 priority 110
+ standby 2 preempt
+```
+
+**Router3 (Standby — prioridad 90):**
+```
+interface GigabitEthernet0/0.35
+ standby 1 ip 192.198.100.1
+ standby 1 priority 90
+
+interface GigabitEthernet0/0.45
+ standby 2 ip 192.198.100.129
+ standby 2 priority 90
+```
+
+| VLAN | IP Router2 | IP Router3 | IP Virtual HSRP |
+|---|---|---|---|
+| WEB_SERVERS (35) | 192.198.100.2 | 192.198.100.3 | 192.198.100.1 |
+| DHCP_SERVERS (45) | 192.198.100.131 | 192.198.100.132 | 192.198.100.129 |
+
+### Prueba de failover HSRP
+
+1. Hacer ping desde PC1 a `192.198.100.10` → responde 
+2. Apagar Router1 (power off)
+3. Esperar ~10 segundos para que Router0 tome el rol activo
+4. Hacer ping nuevamente → sigue respondiendo  (via Router0)
+5. Encender Router1 → Router1 recupera el rol activo por `preempt`
+6. Hacer ping → sigue respondiendo 
+
+### 6.2 Piso 1 — Router1 (Activo) y Router0 (Standby)
+
+**Router1 (Activo — prioridad 110):**
+```
+interface GigabitEthernet0/1.15
+ standby 1 ip 192.198.15.65
+ standby 1 priority 110
+ standby 1 preempt
+
+interface GigabitEthernet0/1.25
+ standby 2 ip 192.198.15.1
+ standby 2 priority 110
+ standby 2 preempt
+```
+
+**Router0 (Standby — prioridad 90):**
+```
+interface GigabitEthernet0/1.15
+ standby 1 ip 192.198.15.65
+ standby 1 priority 90
+
+interface GigabitEthernet0/1.25
+ standby 2 ip 192.198.15.1
+ standby 2 priority 90
+```
+
+| VLAN | IP Router1 | IP Router0 | IP Virtual HSRP |
+|---|---|---|---|
+| ADMIN (15) | 192.198.15.66 | 192.198.15.67 | 192.198.15.65 |
+| ESTUDIANTES (25) | 192.198.15.2 | 192.198.15.3 | 192.198.15.1 |
 
 
+### 6.3 Servidor Web (ServerWeb — IP: 192.198.100.10)
 
-### 6.2 Servidor Web — HTTP
-
+**Configuración DNS:**
 - Dominio: `www.practica2_Grupo5.com`
-- Página estática con datos 
+- Registro tipo A apuntando a `192.198.100.10`
+
+**Configuración HTTP:**
+- Servicio HTTP habilitado en puerto 80
+- Archivo `index.html` con información del grupo
+
+**Página web estática (index.html):**
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Práctica 2 - Grupo 41</title>
+</head>
+<body>
+  <h1>Práctica 2 - Redes</h1>
+  <h2>Grupo 41</h2>
+  <table>
+    <tr><th>Integrante</th><th>Carnet</th></tr>
+    <tr><td>Harold Alejandro Sánchez Hernández</td><td>202200100</td></tr>
+    <tr><td>Engel Emilio Coc Raxjal</td><td>202200314</td></tr>
+    <tr><td>Madeline Fabiola Prado Reyes</td><td>202100039</td></tr>
+  </table>
+</body>
+</html>
+```
+
+Para acceder desde cualquier dispositivo: `http://www.practica2_Grupo5.com`
 
 
 
-### 6.3 Servidor DNS
+
+### 6.4 Servidor DNS
 
 
+**DNS y HTTP en ServerWeb (192.198.100.10)**
+
+En el ServerWeb, pestaña **Services**:
+
+**HTTP:**
+- Activar servicio HTTP (ON)
+- Editar el archivo `index.html` con la página de tu grupo
+
+**DNS:**
+- Activar servicio DNS (ON)
+- Agregar registro:
+```
+Name:    www.practica2_Grupo5.com
+Type:    A Record
+Address: 192.198.100.10
+```
 
 ---
+
+**Por qué cambiamos los gateways en el ServerDHCP**
+
+Antes tenías estos gateways en los pools:
+
+| Pool | Gateway anterior | Por qué estaba mal |
+|---|---|---|
+| ADMIN | 192.198.15.78 | IP real de Router0, si se cae → sin gateway |
+| ESTUDIANTES | 192.198.15.62 | IP real de Router0, si se cae → sin gateway |
+
+Después de HSRP los cambiamos a:
+
+| Pool | Gateway nuevo | Por qué es correcto |
+|---|---|---|
+| ADMIN | 192.198.15.65 | IP virtual HSRP, siempre disponible |
+| ESTUDIANTES | 192.198.15.1 | IP virtual HSRP, siempre disponible |
+
+
+
 
 ## 7. Comandos de verificación utilizados
 
