@@ -25,6 +25,8 @@ La red está compuesta por tres edificios interconectados:
 
 Los cuatro edificios se interconectan mediante **enlaces LACP de 4 interfaces** entre MLS4 (Piso 1) y MLS2, MLS3, MLS0. El protocolo de enrutamiento utilizado es **EIGRP** (grupo impar).
 
+![topologia](img/topologia.png)
+
 ### Dispositivos por zona
 
 | Zona | Dispositivos |
@@ -785,7 +787,7 @@ write memory
 
 
 
-### 6.1 HSRP Biblioteca Central (Router2 y Router3)
+### 10.1 HSRP Biblioteca Central (Router2 y Router3)
 **Router2 (Activo — prioridad 110):**
 ```
 interface GigabitEthernet0/0.35
@@ -824,7 +826,7 @@ interface GigabitEthernet0/0.45
 5. Encender Router1 → Router1 recupera el rol activo por `preempt`
 6. Hacer ping → sigue respondiendo 
 
-### 6.2 Piso 1 — Router1 (Activo) y Router0 (Standby)
+### 10.2 Piso 1 — Router1 (Activo) y Router0 (Standby)
 
 **Router1 (Activo — prioridad 110):**
 ```
@@ -856,7 +858,7 @@ interface GigabitEthernet0/1.25
 | ESTUDIANTES (25) | 192.198.15.2 | 192.198.15.3 | 192.198.15.1 |
 
 
-### 6.3 Servidor Web (ServerWeb — IP: 192.198.100.10)
+### 10.3 Servidor Web (ServerWeb — IP: 192.198.100.10)
 
 **Configuración DNS:**
 - Dominio: `www.practica2_Grupo5.com`
@@ -890,9 +892,12 @@ interface GigabitEthernet0/1.25
 Para acceder desde cualquier dispositivo: `http://www.practica2_Grupo5.com`
 
 
+![topologia](img/pagina.png)
 
 
-### 6.4 Servidor DNS
+
+
+### 10.4 Servidor DNS
 
 
 **DNS y HTTP en ServerWeb (192.198.100.10)**
@@ -933,7 +938,7 @@ Después de HSRP los cambiamos a:
 
 
 
-## 7. Comandos de verificación utilizados
+## 11. Comandos de verificación utilizados
 
 ```
 show vlan brief
@@ -949,7 +954,7 @@ write memory
 
 ---
 
-## 8. Pruebas de comunicación
+## 12. Pruebas de comunicación
 
 | Prueba | Resultado |
 |--------|-----------|
